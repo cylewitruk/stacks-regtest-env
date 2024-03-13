@@ -212,8 +212,9 @@ start_node() {
     if [ "$( is_node_process_alive)" = "1" ]; then
         until [ "$( check_node_startup )" -eq 1 ]; do
             if [ "$( is_node_process_alive )" = "0" ]; then
-                echo "‣ ❌ Node process died unexpectedly"
+                echo "‣ 🔥 Node process died unexpectedly"
                 dump_logs
+                echo "‣ 🔥 Please review the above log tail. Exiting."
                 exit 1
             fi
 
