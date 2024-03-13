@@ -66,15 +66,15 @@ RUN apt update \
 # Build stacks-node 2.4 binary
 WORKDIR /src/stacks-core
 RUN git checkout ${STACKS_2_4_TAG_BRANCH} \
-    && cargo build --package stacks-node --release --bin stacks-node \
-    && mv /src/stacks-core/target/release/stacks-node /stacks/bin/stacks-node-2.4
+    && cargo build --package stacks-node --profile dev --bin stacks-node \
+    && mv /src/stacks-core/target/debug/stacks-node /stacks/bin/stacks-node-2.4
 
 # Build stacks-node nakamoto binary
 RUN git checkout ${STACKS_NAKAMOTO_TAG_BRANCH} \
-    && cargo build --package stacks-node --release --bin stacks-node \
-    && cargo build --package stacks-signer --release --bin stacks-signer \
-    && mv /src/stacks-core/target/release/stacks-node /stacks/bin/stacks-node-nakamoto \
-    && mv /src/stacks-core/target/release/stacks-signer /stacks/bin/stacks-signer
+    && cargo build --package stacks-node --profile dev --bin stacks-node \
+    && cargo build --package stacks-signer --profile dev --bin stacks-signer \
+    && mv /src/stacks-core/target/debug/stacks-node /stacks/bin/stacks-node-nakamoto \
+    && mv /src/stacks-core/target/debug/stacks-signer /stacks/bin/stacks-signer
 
 # Build sbtc cli
 WORKDIR /src/sbtc
@@ -98,7 +98,7 @@ COPY ./conf/local-signer-conf.toml /stacks/conf/signer.toml
 
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq\
+    && apt install -y jq procps \
     && groupadd -r stacks \ 
     && useradd -r -m -g stacks stacks \
     && chown -R stacks:stacks /stacks \

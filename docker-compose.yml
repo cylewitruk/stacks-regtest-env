@@ -45,6 +45,7 @@ services:
         STACKS_NAKAMOTO_TAG_BRANCH: ${STACKS_NAKAMOTO_TAG_BRANCH}
       target: stacks-node
     image: stacks.local/stacks-node
+    entrypoint: /bin/bash -c exit
   
   # ----------------------------------------------------------------------------
   # 2.4 nodes
