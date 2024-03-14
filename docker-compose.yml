@@ -22,19 +22,24 @@ services:
         BITCOIN_VERSION: ${BITCOIN_VERSION}
       target: bitcoind
     image: stacks.local/bitcoin-node
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.role: bitcoind
     ports:
       - "18443:18443"
       - "18444:18444"
     volumes:
-      - ./conf/bitcoin-runtime.conf:/home/bitcoin/.bitcoin/bitcoin.conf
-      - ./conf/wallet.dat:/bitcoin/wallet.dat
-      - ./conf/bitcoin-entrypoint.sh:/bitcoin/entrypoint.sh
+      - ./assets/bitcoin-runtime.conf:/home/bitcoin/.bitcoin/bitcoin.conf
+      - ./assets/wallet.dat:/bitcoin/wallet.dat
+      - ./assets/bitcoin-entrypoint.sh:/bitcoin/entrypoint.sh
   
   # ----------------------------------------------------------------------------
   # Stacks base image
   # ----------------------------------------------------------------------------
 
-  # Base image containing both 2.4 and nakamoto `stacks-node` binaries
+  # This image is not intended to be run directly, but rather used as a base for
+  # the 2.4 and nakamoto nodes. This just helps to keep the service definitions 
+  # a little bit cleaner since we don't need to build for each node type.
   stacks-node:
     build:
       context: .
@@ -43,6 +48,8 @@ services:
         BITCOIN_VERSION: ${BITCOIN_VERSION}
         STACKS_2_4_TAG_BRANCH: ${STACKS_2_4_TAG_BRANCH}
         STACKS_NAKAMOTO_TAG_BRANCH: ${STACKS_NAKAMOTO_TAG_BRANCH}
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
       target: stacks-node
     image: stacks.local/stacks-node
     entrypoint: /bin/bash -c exit
@@ -55,8 +62,13 @@ services:
   stacks-2.4-leader-node:
     user: stacks
     image: stacks.local/stacks-node
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.node_version: 2.4
+      local.stacks.leader: true
+      local.stacks.role: node
     env_file:
-      - ./conf/stacks.env
+      - ./assets/stacks.env
     depends_on:
       - bitcoin-node
       - stacks-node
@@ -67,16 +79,22 @@ services:
       LEADER: true
       NODE_VERSION: 2.4
     volumes:
-      - ./conf/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Follower nodes
   stacks-2.4-follower-node:
     user: stacks
     image: stacks.local/stacks-node
     env_file:
-      - ./conf/stacks.env
+      - ./assets/stacks.env
     deploy:
       replicas: 2
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.node_version: 2.4
+      local.stacks.leader: false
+      local.stacks.role: node
     depends_on:
       - stacks-2.4-leader-node
     ports:
@@ -84,6 +102,9 @@ services:
       - "5030-5039:20444"
     environment:
       NODE_VERSION: "2.4"
+    volumes:
+      - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # ----------------------------------------------------------------------------
   # Nakamoto nodes
@@ -93,8 +114,13 @@ services:
   stacks-naka-leader-node:
     user: stacks
     image: stacks.local/stacks-node
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.node_version: nakamoto
+      local.stacks.leader: true
+      local.stacks.role: node
     env_file:
-      - ./conf/stacks.env
+      - ./assets/stacks.env
     depends_on:
       - stacks-2.4-leader-node
       - bitcoin-node
@@ -106,16 +132,22 @@ services:
       LEADER: true
       NODE_VERSION: nakamoto
     volumes:
-      - ./conf/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Follower nodes
   stacks-naka-follower-node:
     user: stacks
     image: stacks.local/stacks-node
     env_file:
-      - ./conf/stacks.env
+      - ./assets/stacks.env
     deploy:
       replicas: 2
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.node_version: nakamoto
+      local.stacks.leader: false
+      local.stacks.role: node
     depends_on:
       - stacks-2.4-leader-node
     ports:
@@ -123,22 +155,28 @@ services:
       - "5030-5039:20444"
     environment:
       NODE_VERSION: nakamoto
+    volumes:
+      - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Signer nodes
-  # stacks-signer:
-  #   user: stacks
-  #   image: stacks.local/stacks-node
-  #   env_file:
-  #     - ./conf/stacks.env
-  #   deploy:
-  #     replicas: 3
-  #   depends_on:
-  #     - stacks-naka-leader-node
-  #   ports:
-  #     - "5040-5049:20443"
-  #     - "5050-5059:20444"
-  #     - "5060-5069:30002"
-  #   environment:
-  #     NODE_VERSION: nakamoto
+  stacks-signer:
+    user: stacks
+    image: stacks.local/stacks-node
+    env_file:
+      - ./assets/stacks.env
+    deploy:
+      replicas: 3
+    labels:
+      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.role: signer
+    depends_on:
+      - stacks-naka-leader-node
+    ports:
+      - "5040-5049:20443"
+      - "5050-5059:20444"
+      - "5060-5069:30002"
+    environment:
+      NODE_VERSION: nakamoto
 
   

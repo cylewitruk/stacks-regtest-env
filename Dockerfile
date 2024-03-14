@@ -1,3 +1,5 @@
+ARG USER_ID
+ARG GROUP_ID
 ARG STACKS_2_4_TAG_BRANCH
 ARG NAKAMOTO_TAG_BRANCH
 
@@ -26,14 +28,17 @@ RUN cp bitcoin-${BITCOIN_VERSION}/bin/* /bitcoin/bin/
 # ------------------------------------------------------------------------------
 FROM debian:bookworm-slim as bitcoind
 
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
 WORKDIR /bitcoin
 
 COPY --from=bitcoin-build /bitcoin/bin /bitcoin/bin/
 
 RUN apt update \
     && apt upgrade \
-    && groupadd -r bitcoin \ 
-    && useradd -r -m -g bitcoin bitcoin \
+    && groupadd -r -g ${GROUP_ID} bitcoin \ 
+    && useradd -r -m --uid=${USER_ID} -g bitcoin bitcoin \
     && mkdir -p /bitcoin/data \
     && chown -R bitcoin:bitcoin /bitcoin \
     && chmod u+x /bitcoin/bin/* \
@@ -87,25 +92,30 @@ RUN rustup component add rustfmt \
 # ------------------------------------------------------------------------------
 FROM debian:bookworm-slim as stacks-node
 
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
 # Copy stacks-node binaries & sbtc cli
 COPY --from=stacks-node-build /stacks/bin/* /stacks/bin/
-COPY ./conf/stacks-node-entrypoint.sh /stacks/bin/entrypoint.sh
-COPY ./conf/stacks-funcs.sh /stacks/bin/stacks-funcs.sh
+COPY ./assets/stacks-node-entrypoint.sh /stacks/bin/entrypoint.sh
+COPY ./assets/stacks-funcs.sh /stacks/bin/stacks-funcs.sh
 COPY --from=bitcoin-build /bitcoin/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
-COPY ./conf/local-leader-conf.toml /stacks/conf/leader.toml
-COPY ./conf/local-follower-conf.toml /stacks/conf/follower.toml
-COPY ./conf/local-signer-conf.toml /stacks/conf/signer.toml
+COPY ./assets/stacks-leader-conf.toml /stacks/conf/leader.toml
+COPY ./assets/stacks-follower-conf.toml /stacks/conf/follower.toml
+COPY ./assets/stacks-signer-conf.toml /stacks/conf/signer.toml
+COPY ./db-migrations/* /stacks/db-migrations/
 
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq procps \
-    && groupadd -r stacks \ 
-    && useradd -r -m -g stacks stacks \
+    && apt install -y jq procps sqlite3 tree \
+    && groupadd -r -g ${USER_ID} stacks \ 
+    && useradd -r -m --uid ${GROUP_ID} -g stacks stacks \
+    && mkdir -p /stacks/signer /stacks/assets \
     && chown -R stacks:stacks /stacks \
     && chmod u+x /stacks/bin/* \
-    && mkdir -p /bitcoin/data \
+    && mkdir -p /bitcoin/data /bitcoin/logs \
     && chown -R stacks:stacks /bitcoin
 
 USER stacks
 
-ENTRYPOINT [ "/stacks/bin/entrypoint.sh" ]
+ENTRYPOINT [ "/bin/bash", "-c", "/stacks/bin/entrypoint.sh" ]
