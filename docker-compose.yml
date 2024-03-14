@@ -8,6 +8,19 @@ networks:
     driver: bridge
 
 services:
+
+  # ----------------------------------------------------------------------------
+  # General environment node (just used to keep labels etc.)
+  # ----------------------------------------------------------------------------
+
+  # General environment node
+  environment:
+    image: busybox:latest
+    labels:
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
+      local.stacks.role: environment
+    entrypoint: "/bin/sh -c 'while : ; do sleep 5; done'"
+
   # ----------------------------------------------------------------------------
   # Bitcoin regtest node
   # ----------------------------------------------------------------------------
@@ -22,16 +35,18 @@ services:
         BITCOIN_VERSION: ${BITCOIN_VERSION}
       target: bitcoind
     image: stacks.local/bitcoin-node
+    depends_on:
+      - environment
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.role: bitcoind
     ports:
       - "18443:18443"
       - "18444:18444"
     volumes:
       - ./assets/bitcoin-runtime.conf:/home/bitcoin/.bitcoin/bitcoin.conf
-      - ./assets/wallet.dat:/bitcoin/wallet.dat
       - ./assets/bitcoin-entrypoint.sh:/bitcoin/entrypoint.sh
+      - ./environments/${REGTEST_ENV_ID}/logs:/bitcoin/logs/:rw
   
   # ----------------------------------------------------------------------------
   # Stacks base image
@@ -63,7 +78,7 @@ services:
     user: stacks
     image: stacks.local/stacks-node
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.node_version: 2.4
       local.stacks.leader: true
       local.stacks.role: node
@@ -72,6 +87,7 @@ services:
     depends_on:
       - bitcoin-node
       - stacks-node
+      - environment
     ports:
       - "5000-5009:20443"
       - "5010-5019:20444"
@@ -91,12 +107,13 @@ services:
     deploy:
       replicas: 2
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.node_version: 2.4
       local.stacks.leader: false
       local.stacks.role: node
     depends_on:
       - stacks-2.4-leader-node
+      - environment
     ports:
       - "5020-5029:20443"
       - "5030-5039:20444"
@@ -115,7 +132,7 @@ services:
     user: stacks
     image: stacks.local/stacks-node
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.node_version: nakamoto
       local.stacks.leader: true
       local.stacks.role: node
@@ -125,6 +142,7 @@ services:
       - stacks-2.4-leader-node
       - bitcoin-node
       - stacks-node
+      - environment
     ports:
       - "5000-5009:20443"
       - "5010-5019:20444"
@@ -144,12 +162,13 @@ services:
     deploy:
       replicas: 2
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.node_version: nakamoto
       local.stacks.leader: false
       local.stacks.role: node
     depends_on:
       - stacks-2.4-leader-node
+      - environment
     ports:
       - "5020-5029:20443"
       - "5030-5039:20444"
@@ -168,10 +187,11 @@ services:
     deploy:
       replicas: 3
     labels:
-      local.stacks.environment_id: ${REGTEST_ENV_ID}
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.role: signer
     depends_on:
       - stacks-naka-leader-node
+      - environment
     ports:
       - "5040-5049:20443"
       - "5050-5059:20444"

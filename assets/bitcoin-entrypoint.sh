@@ -1,7 +1,7 @@
 #!/bin/sh
 export PATH="$PATH:/bitcoin/bin/"
 
-bitcoind
+bitcoind >> /bitcoin/logs/bitcoind.log 2>&1 &
 
 # Give bitcoind time to start before making RPC calls
 sleep 1

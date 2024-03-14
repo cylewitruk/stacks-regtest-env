@@ -110,10 +110,10 @@ RUN apt update \
     && apt install -y jq procps sqlite3 tree \
     && groupadd -r -g ${USER_ID} stacks \ 
     && useradd -r -m --uid ${GROUP_ID} -g stacks stacks \
-    && mkdir -p /stacks/signer /stacks/assets \
+    && mkdir -p /stacks/signer /stacks/run /bitcoin/data /bitcoin/logs \
+    && touch /stacks/run/host /stacks/run/container \
     && chown -R stacks:stacks /stacks \
     && chmod u+x /stacks/bin/* \
-    && mkdir -p /bitcoin/data /bitcoin/logs \
     && chown -R stacks:stacks /bitcoin
 
 USER stacks

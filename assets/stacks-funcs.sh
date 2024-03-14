@@ -14,8 +14,8 @@ EPOCH_2_4=7
 EPOCH_2_5=8
 EPOCH_3_0=9
 
-NODE_LOG="/stacks/logs/stacks-node-$(date +%Y%m%d%H%M%S).log"
-SIGNER_LOG="/stacks/logs/stacks-signer-$(date +%Y%m%d%H%M%S).log"
+NODE_LOG="/stacks/logs/stacks-node-$HOSTNAME.log"
+SIGNER_LOG="/stacks/logs/stacks-signer.log"
 
 CURRENT_EPOCH=$EPOCH_1_0
 
@@ -79,6 +79,8 @@ check_logs_for_errors() {
 }
 
 print_config() {
+  echo "CAT: $( cut -c9- < /proc/1/cpuset )"
+  echo
   echo "----------------------------------------"
   echo "Stacks regtest node is starting..."
   echo "Host: ${HOSTNAME}"
@@ -207,6 +209,8 @@ start_node() {
   else
     RUNNING="$RUNNING-follower"
   fi
+
+  sleep 1
 
   if [ "$( is_node_process_alive)" = "1" ]; then
     until [ "$( check_node_startup )" -eq 1 ]; do
