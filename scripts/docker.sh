@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 # shellcheck source=constants.sh
-# shellcheck source=vars.sh
+# shellcheck source=lib.sh
 
 # Polls the running containers for this environment and updates the environment 
 # data. This copies the `host` file from the local environment to the container
@@ -26,11 +26,29 @@ poll_containers() {
         mkdir -p "$dir"
         touch -a "$dir/host"
 
-        docker exec "$id" touch "/stacks/run/.copying"
+        docker exec "$id" touch "/stacks/run/.lock"
         docker cp "$dir/host" "$id:/stacks/run/host"
         docker cp "$id:/stacks/run/container" "$dir/container"
-        docker exec "$id" rm "/stacks/run/.copying"
+        docker exec "$id" rm "/stacks/run/.lock"
     done
+}
+
+# Copies the default contracts from './contracts' to the container with
+# the specified id.
+#
+# @param $1 - The container id
+copy_default_contracts_to_container() {
+  local id file path
+  id="$1"
+  echo "Installing default contracts..."
+
+  docker exec "$id" touch "/stacks/inbox/.lock"
+  for path in ./contracts/*.deploy; do
+    file=$(basename "$path")
+    echo "‣ Installing contract: $file"
+    docker cp "$dir/host" "$id:/stacks/inbox/$file"
+  done
+  docker exec "$id" rm "/stacks/inbox/.lock"
 }
 
 # Generates a docker-compose-friendly string of services based on the current
@@ -87,4 +105,38 @@ get_stacks_process_for_container_id() {
     container_id=$( echo "$1" | tr -d '"' )
     result=$( docker top "$container_id" o pid,cmd | sed '1d' | grep -oP '(?<=stacks-node-)[\w-\._]+' )
     echo "$result"
+}
+
+get_random_stacks_node_container_id() {
+    local leader filter json ids id
+    leader=$1
+
+    filter="-f 'label=local.stacks.role=node' -f 'label=local.stacks.$ENV_ID_LABEL=$REGTEST_ENV_ID'"
+
+    if [ "$leader" = "$TRUE" ]; then
+        filter="$filter -f 'label=local.stacks.leader=true'"
+    elif [ "$leader" = "$FALSE" ]; then
+        filter="$filter -f 'label=local.stacks.leader=false'"
+    fi
+    
+    if [ -z "$REGTEST_ENV_ID" ]; then
+        echo "No active environment"
+        exit 0
+    fi
+
+    # Get all running containers for the current environment as JSON
+    cmd="docker ps $filter --format 'json' | tr '\n' ',' | sed 's/,*$//g'"
+    json="[$( bash -c "$cmd" )]"
+
+    # Use 'jq' to extract the container IDs
+    ids="$( echo "$json" | jq '.[] .ID' )"
+
+    # Convert the newline-separated strings into arrays
+    readarray -t ids <<<"$ids" 2>&1 /dev/null
+
+    # Get a random index from the array of ids
+    index=$((RANDOM % ${#ids[@]}))
+    id="${ids[$index]}"
+
+    trim_quotes "$id"
 }

@@ -19,7 +19,8 @@ NC='\e[0m' # No Color
 BOLD='\e[1m' # Bold
 ITALIC='\e[3m' # Italic
 
-# Booleans
+# Other constants
+NULL='null'
 TRUE=1
 FALSE=0
 
