@@ -1,0 +1,18 @@
+---
+id: 0
+name: ${DEPLOYMENT_NAME}
+network: devnet
+stacks-node: "http://${STACKS_NODE}:20443"
+bitcoin-node: "http://bitcoin:bitcoin@bitcoin-node:18443"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: ${CONTRACT_NAME}
+            expected-sender: ${STACKS_SENDER}
+            cost: 6940
+            path: contracts/counter-v2.clar
+            anchor-block-only: true
+            clarity-version: 2
+      epoch: "${EPOCH}"

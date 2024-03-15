@@ -21,6 +21,21 @@ services:
       local.stacks.role: environment
     entrypoint: "/bin/sh -c 'while : ; do sleep 5; done'"
 
+  # Clarinet
+  clarinet:
+    user: stacks
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: clarinet
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    image: stacks.local/clarinet
+    labels:
+      local.stacks.environment_id: "${REGTEST_ENV_ID}"
+      local.stacks.role: clarinet
+
   # ----------------------------------------------------------------------------
   # Bitcoin regtest node
   # ----------------------------------------------------------------------------
@@ -40,6 +55,8 @@ services:
     labels:
       local.stacks.environment_id: "${REGTEST_ENV_ID}"
       local.stacks.role: bitcoind
+    environment:
+      BITCOIN_INITIAL_BLOCKS: ${BITCOIN_INITIAL_BLOCKS}
     ports:
       - "18443:18443"
       - "18444:18444"

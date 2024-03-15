@@ -51,7 +51,7 @@ EXPOSE 18443 18444
 ENTRYPOINT ["/bitcoin/entrypoint.sh"]
 
 # ------------------------------------------------------------------------------
-# Build stage for Stacks
+# Build stage for Stacks Nodes
 # ------------------------------------------------------------------------------
 FROM rust:1.76-slim-bookworm as stacks-node-build
 
@@ -119,3 +119,58 @@ RUN apt update \
 USER stacks
 
 ENTRYPOINT [ "/bin/bash", "-c", "/stacks/bin/entrypoint.sh" ]
+
+# ------------------------------------------------------------------------------
+# Build stage for Clarinet
+# ------------------------------------------------------------------------------
+FROM rust:1.76-slim-bookworm as clarinet-build
+
+WORKDIR /src
+
+# Install dependencies and download clarinet
+RUN apt update \
+    && apt upgrade -y \
+    && apt install -y build-essential libclang-dev git \
+    && git clone https://github.com/hirosystems/clarinet.git --recursive
+
+WORKDIR /src/clarinet
+
+RUN git checkout main \
+    && git pull \
+    && git submodule update --recursive \
+    && cargo build --release --bin clarinet \
+    && mv target/release/clarinet /clarinet
+
+# ------------------------------------------------------------------------------
+# Create a the runtime image with only the runtime dependencies
+# ------------------------------------------------------------------------------
+FROM debian:bookworm-slim as clarinet
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+WORKDIR /stacks
+
+# Copy clarinet binary & examples
+COPY --from=clarinet-build /clarinet /stacks/bin/clarinet
+COPY --from=clarinet-build /src/clarinet/components/clarinet-cli/examples /stacks/apps
+
+# Copy local assets
+COPY ./assets/clarinet-entrypoint.sh /stacks/bin/entrypoint.sh
+COPY ./assets/clarinet-deployment-plan.yaml /stacks/deployment-plan-template.yaml
+
+# Update and install packages
+RUN apt update \
+    && apt upgrade -y \
+    && apt install -y jq tree gettext-base
+
+# Create stacks user/group, create needed directories and set permissions
+RUN groupadd -r -g ${USER_ID} stacks \ 
+    && useradd -r -m --uid ${GROUP_ID} -g stacks stacks \
+    && mkdir -p /stacks/run \
+    && touch /stacks/run/host /stacks/run/container \
+    && chown -R stacks:stacks /stacks \
+    && chmod u+x /stacks/bin/* \
+    && ln -s /stacks/bin/clarinet /bin/clarinet
+
+ENTRYPOINT [ "/stacks/bin/entrypoint.sh"]

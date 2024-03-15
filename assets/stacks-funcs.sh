@@ -16,8 +16,12 @@ EPOCH_3_0=9
 
 NODE_LOG="/stacks/logs/stacks-node-$HOSTNAME.log"
 SIGNER_LOG="/stacks/logs/stacks-signer.log"
+NODE_INDEX_DB="/stacks/data/krypton/chainstate/vm/index.sqlite"
 
 CURRENT_EPOCH=$EPOCH_1_0
+
+BITCOIN_BLOCK_HEIGHT=-1
+STACKS_BLOCK_HEIGHT=-1
 
 TRUE=1
 FALSE=0
@@ -446,24 +450,36 @@ apply_nakamoto_db_migrations() {
   echo "‣ ✓ Success!"
 }
 
+write_node_info() {
+  jq -n \
+    --arg bitcoin_block_height "$BITCOIN_BLOCK_HEIGHT" \
+    --arg stacks_block_height "$STACKS_BLOCK_HEIGHT" \
+    '$ARGS.named' > /stacks/run/container
+}
+
+update_stacks_block_height() {
+  STACKS_BLOCK_HEIGHT=$( sqlite3 "$NODE_INDEX_DB" "select max(block_height) from block_headers;" )
+}
+
 # The main run-loop for the Stacks node. This function is responsible for
 # starting the node, checking for new Bitcoin blocks, performing a nakamoto
 # node upgrade when configured, and stopping/starting the node when necessary.
 run() {
-  local last_btc_block_height btc_block_height
+  local last_btc_block_height
 
-  btc_block_height=$( bitcoin-cli getblockcount )
-  last_btc_block_height=$btc_block_height
-  echo "₿ Bitcoin block height: $btc_block_height"
+  BITCOIN_BLOCK_HEIGHT=$( bitcoin-cli getblockcount )
+  last_btc_block_height=$BITCOIN_BLOCK_HEIGHT
+  echo "₿ Bitcoin block height: $BITCOIN_BLOCK_HEIGHT"
 
   # Main loop
   while :
   do
     # Check if we're in a new Bitcoin block
-    if [ "$last_btc_block_height" -ne "$btc_block_height" ]; then
-      btc_block_height=$last_btc_block_height
-      echo "₿ New Bitcoin block found: $btc_block_height"
-      adjust_epoch "$btc_block_height"
+    if [ "$last_btc_block_height" -ne "$BITCOIN_BLOCK_HEIGHT" ]; then
+      BITCOIN_BLOCK_HEIGHT=$last_btc_block_height
+      echo "₿ New Bitcoin block found: $BITCOIN_BLOCK_HEIGHT"
+      adjust_epoch "$BITCOIN_BLOCK_HEIGHT"
+      update_stacks_block_height
     fi
 
     # If the node is not running and has never been started, start the
@@ -474,7 +490,7 @@ run() {
 
     # Check if we're running a 2.4 leader node and the upgrade height has been
     # reached. If so, stop the 2.4 node and start a Nakamoto node.
-    if [ "$RUNNING" = "2.4-leader" ] && [ "$btc_block_height" -ge "$STACKS_2_4_LEADER_NODE_UPGRADE_HEIGHT" ]
+    if [ "$RUNNING" = "2.4-leader" ] && [ "$BITCOIN_BLOCK_HEIGHT" -ge "$STACKS_2_4_LEADER_NODE_UPGRADE_HEIGHT" ]
     then
       echo "2.4 leader node upgrade height reached 🚩 (burnchain block $STACKS_2_4_LEADER_NODE_UPGRADE_HEIGHT)"
       stop_node
@@ -492,5 +508,6 @@ run() {
     fi
     
     last_btc_block_height=$( bitcoin-cli getblockcount )
+    write_node_info
   done
 }

@@ -1,0 +1,35 @@
+DEPLOYMENT_NAME=counter-v2 deployment
+CONTRACT_NAME=counter-v2
+STACKS_SENDER=ST3KCNDSWZSFZCC6BE4VA9AXWXC9KEB16FBTRK36T
+EPOCH=2.4
+STACKS_NODE=stacks-2.4-leader-node
+AT_BITCOIN_BLOCK=
+---
+;; counter
+;; let's get started with smart contracts
+(define-data-var counter uint u1)
+
+(define-public (increment (step uint))
+  (let ((new-val (+ step (var-get counter))))
+    (var-set counter new-val)
+    (print {
+      object: "counter",
+      action: "incremented",
+      value: new-val,
+      chain: (slice? "blockstack" u5 u10)
+    })
+    (ok new-val)))
+
+(define-public (decrement (step uint))
+  (let ((new-val (- step (var-get counter))))
+    (var-set counter new-val)
+    (print {
+      object: "counter",
+      action: "decremented",
+      value: new-val,
+      chain: (slice? "blockstack" u5 u10)
+    })
+    (ok new-val)))
+
+(define-read-only (read-counter)
+  (ok (var-get counter)))
