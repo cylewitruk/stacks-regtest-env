@@ -5,7 +5,7 @@
 # This command removes all regtest data from the `environments` directory
 # which isn't for the currently active environment, if any.
 exec_clean() {
-    local -i bytes_before bytes_after bytes_reclaimed
+    local -i bytes_before bytes_after reclaimed
 
     if [ ! -d "./environments" ]; then
         printf "No regtest data to remove\n"
@@ -26,8 +26,7 @@ exec_clean() {
 
     bytes_after="$( du -s --bytes ./environments | cut -f1 )"
     mb_after=$(( bytes_after / 1024 / 1024 ))
-    reclaimed=$(( bytes_before - bytes_after ))
-    reclaimed=$(( bytes_reclaimed / 1024 / 1024 ))
+    reclaimed=$(( (bytes_before - bytes_after) / 1024 / 1024 ))
 
     printf "${GREEN}Finished:${NC} %sMB reclaimed, %sMB remaining\n" $reclaimed $mb_after
 }

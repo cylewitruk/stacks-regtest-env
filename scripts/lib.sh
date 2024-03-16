@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+# shellcheck source=constants.sh
+. "$PWD/scripts/constants.sh"
+
 # Trims leading and trailing double quotes from a string.
 #
 # @param $1: The input string (required)
@@ -47,4 +50,37 @@ read_env() {
       export "$CLEANED_LINE"
     fi
   done < "$filePath"
+}
+
+log() {
+  if [ -z "$REGTEST_ENV_ID" ]; then
+    return
+  fi
+
+  local -r message="${1:?}"
+  local -i pad="${2:-0}"
+  local -r timestamp=$(date +"%Y-%m-%d %T")
+
+  printf "[%s] %s" "$timestamp" "$message" >> "$ENV_LOG_FILE"
+
+  if [ "$pad" -gt 0 ]; then
+    pad $pad "$message"
+  else
+    printf "%s" "$message"
+  fi
+}
+
+log_line() {
+  log "$1\n"
+}
+
+is_valid_stacks_epoch() {
+  local -r epoch="${1:?}"
+  epochs=("1.0" "2.0" "2.05" "2.1" "2.2" "2.3" "2.4" "2.5" "3.0")
+  for valid_epoch in "${epochs[@]}"; do
+    if [ "$epoch" == "$valid_epoch" ]; then
+      return 0
+    fi
+  done
+  return 1
 }

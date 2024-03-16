@@ -1,12 +1,10 @@
 #! /usr/bin/env bash
 
-PWD="$(pwd)"
+. ./regtest.sh "load-only"
 
-. ./scripts/constants.sh
-. ./scripts/docker.sh
-. ./scripts/cmd.start.sh
-. ./scripts/cmd.ls.sh
 
-REGTEST_ENV_ID="asd3a67sd5a2sd"
-
-get_random_stacks_node_container_id "$FALSE"
+if is_valid_stacks_epoch 'asd'; then
+  echo "Valid"
+else
+  echo "Invalid"
+fi

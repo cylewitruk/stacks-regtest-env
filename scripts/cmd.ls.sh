@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC2059
 
 # Entry point for the `ls` command
 exec_ls() {
@@ -55,7 +56,9 @@ exec_ls() {
         fi
 
         # Version
-        if [ "$node_version" != "$process" ]; then
+        if [ -z "$process" ]; then
+            printf "$node_version"
+        elif [ "$node_version" != "$process" ]; then
             printf "${GRAY}$node_version ⇾ ${NC}${BOLD}$process${NC}"
         elif [ "$process" = "" ]; then
             printf "%s" "--"

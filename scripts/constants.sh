@@ -19,10 +19,12 @@ NC='\e[0m' # No Color
 BOLD='\e[1m' # Bold
 ITALIC='\e[3m' # Italic
 
+CLEARLN='\033[0K\r' # Clear line
+
 # Other constants
 NULL='null'
-TRUE=1
-FALSE=0
+declare -i TRUE=1
+declare -i FALSE=0
 
 # Stacks labels (local.stacks.*) - used to label docker containers
 ROLE_LABEL='role'

@@ -3,6 +3,7 @@
 
 # shellcheck source=docker.sh
 . "$PWD/scripts/docker.sh"
+#. "$PWD/scripts/monitor.sh"
 
 # Variables to control which nodes to start
 STACKS_24_LEADER=$FALSE
@@ -97,26 +98,72 @@ exec_start() {
   export REGTEST_ENV_ID
   REGTEST_ENV_ID="$(date +%Y%m%d%H%M%S)"
 
-  mkdir -p "./environments/$REGTEST_ENV_ID/logs" "./environments/$REGTEST_ENV_ID/assets"
+  ENV_LOGS_DIR="./environments/$REGTEST_ENV_ID/logs"
+  ENV_RUN_DIR="./environments/$REGTEST_ENV_ID/run"
+  ENV_LOG_FILE="$ENV_LOGS_DIR/regtest.log"
+  mkdir -p "$ENV_LOGS_DIR" "$ENV_RUN_DIR"
+
+  services="$(get_services_string)"
 
   echo "----------------------------------------"
   echo "Preparing to start Stacks regtest environment"
   echo "‣ User: $USER_NAME ($USER_ID) : $GROUP_NAME ($GROUP_ID)"
   echo "‣ Environment ID: $REGTEST_ENV_ID"
-  echo "‣ Log Path: ./environments/$REGTEST_ENV_ID/logs"
-  echo "‣ Assets Path: ./environments/$REGTEST_ENV_ID/assets"
+  echo "‣ Path: $PWD/environments/$REGTEST_ENV_ID/"
+  echo "‣ Services: $services"
   echo "----------------------------------------"
 
-  services="$(get_services_string)"
+  echo "Starting environment..."
+  pad 50 "‣ Building services"
+  if sh -c "docker compose build $services" >> "$ENV_LOG_FILE" 2>&1; then
+    printf "[${GREEN}OK${NC}]\n"
+  else
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  fi
 
-  sh -c "docker compose build $services"
-  docker compose up -d environment
-  sh -c "docker compose up -d $services"
+  # Start the internal 'environment' service, which is used to store
+  # environment-related information. This service should be the first started
+  # and last stopped for an environment.
+  pad 50 "‣ Starting the 'environment' service..."
+  if docker compose up -d environment --build >> "$ENV_LOG_FILE" 2>&1; then
+    printf "[${GREEN}OK${NC}]\n"
+  else
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  fi
 
+  pad 50 "‣ Starting the remaining services..."
+  if sh -c "docker compose up -d $services" >> "$ENV_LOG_FILE" 2>&1; then
+    printf "[${GREEN}OK${NC}]\n"
+  else
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  fi
+
+  # Start signer node(s) if requested.
   if [ "$STACKS_SIGNER" -eq "$TRUE" ]; then
     echo "Starting the signer node..."
     docker compose up stacks-signer
   fi
 
-  poll_containers
+  # Start the monitor script in the background, and store the PID in a file.
+  pad 50 "‣ Starting the background monitor..."
+  if monitor >> "$ENV_LOG_FILE" &
+  then
+    local -i monitor_pid=$!
+    echo "$monitor_pid" > "$ENV_RUN_DIR/monitor.pid"
+    printf "[${GREEN}OK${NC}] ${GRAY} pid:$monitor_pid${NC}\n\n"
+  else
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  fi
+
+  sleep 1
+  printf "🚀 Environment launched!\n\n"
+
+  exec_ls
+
+  printf "\n${BOLD}To stop the environment, run:${NC} ./regtest stop\n\n"
+  printf "${BOLD}${GREEN}Success:${NC} Regtest environment has been started.\n\n"
 }
