@@ -13,8 +13,12 @@ This application is an assortment of `bash` scripts which provide a clean interf
     - [Docker](#docker)
     - [Environments](#environments)
     - [Data Synchronization](#data-synchronization)
+      - [Mounted Volumes](#mounted-volumes)
+      - [Synchronized Data](#synchronized-data)
   - [Usage](#usage)
     - [Starting a New Environment](#starting-a-new-environment)
+    - [Stopping the Environment](#stopping-the-environment)
+    - [Viewing the Environment](#viewing-the-environment)
     - [Cleaning Up](#cleaning-up)
 
 ## Requirements
@@ -54,7 +58,13 @@ Next, the other requested services will be started as well as a background "moni
 ### Data Synchronization
 _We'll use the **environment id** of `2024010110101` and Docker container id `99e74a576e79` for examples in this section._
 
-The logs for running services are mounted to the local `logs` directory associated to the Docker `container id` as a Docker volume in the respective environment's path. For example, a logs directory may be `./environments/2024010110101/99e74a576e79/logs`.
+#### Mounted Volumes
+
+The logs for running services are mounted to the local `logs` directory associated with the environment. For example, the logs directory for the above example would be `./environments/2024010110101/logs`. 
+
+Each container is responsible for writing its own logs, and for services which can have multiple instances will append their container id to the filename, for example `stacks-node-99e74a576e79.log` for the above container.
+
+#### Synchronized Data
 
 The `monitor.sh` script is responsible for synchronizing data between the host and running services, when an environment is active. 
 
@@ -125,6 +135,29 @@ Available Options:
   --no-default-contracts    Does not install any default contracts into the
                               environment.
   -h, --help                Print this help message.
+```
+
+### Stopping the Environment
+The `stop` command is used to stop the environment. Note that environment data will not be automatically cleaned up -- see [cleaning up](#cleaning-up).
+
+### Viewing the Environment
+The `ls` command can be used to view the current status of the environment.
+
+Example of a result from `./regtest ls`:
+```
+NAME                                    ROLE              VERSION
+local-stacks-naka-follower-node-1       node              nakamoto
+local-stacks-naka-leader-node-1         node (leader)     nakamoto
+local-stacks-naka-follower-node-2       node              nakamoto
+local-stacks-2.4-leader-node-1          node (leader)     2.4
+local-bitcoin-node-1                    bitcoind
+
+This environment has a total of 5 active services (excluding hidden)
+```
+
+Note that if a `node` has been upgraded while running, it will be reflected in the `VERSION` column of the table, for example:
+```
+local-stacks-2.4-leader-node-1          node (leader)     2.4 ⇾ nakamoto
 ```
 
 ### Cleaning Up
