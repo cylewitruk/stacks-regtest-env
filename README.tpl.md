@@ -104,6 +104,7 @@ Note that if a `node` has been upgraded while running, it will be reflected in t
 ```
 local-stacks-2.4-leader-node-1          node (leader)     2.4 ⇾ nakamoto
 ```
+The name of the container will still remain the same, however. This is because this was an in-place upgrade, i.e. simulated an upgrade from _x_ ⇾ _y_ on the same server using the same chainstate.
 
 ### Cleaning Up
 Data will never be automatically removed from environments. However, the `clean` command is available which will remove all stale environment data. Note that if there is currently an running environment, it will **not** be cleaned up.
