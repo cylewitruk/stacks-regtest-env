@@ -12,10 +12,9 @@ This application is an assortment of `bash` scripts which provide a clean interf
   - [How it Works](#how-it-works)
     - [Docker](#docker)
     - [Environments](#environments)
+    - [Data Synchronization](#data-synchronization)
   - [Usage](#usage)
     - [Starting a New Environment](#starting-a-new-environment)
-    - [Data Synchronization](#data-synchronization)
-      - [Synchronized Data](#synchronized-data)
     - [Cleaning Up](#cleaning-up)
 
 ## Requirements
@@ -52,6 +51,15 @@ When the environment is starting, first a small `busybox` container (~3MB) will 
 
 Next, the other requested services will be started as well as a background "monitor" task which both monitors the state of the environment and performs [data synchronization](#data-synchronization) between active services.
 
+### Data Synchronization
+_We'll use the **environment id** of `2024010110101` and Docker container id `99e74a576e79` for examples in this section._
+
+The logs for running services are mounted to the local `logs` directory associated to the Docker `container id` as a Docker volume in the respective environment's path. For example, a logs directory may be `./environments/2024010110101/99e74a576e79/logs`.
+
+The `monitor.sh` script is responsible for synchronizing data between the host and running services, when an environment is active. 
+
+TODO
+
 ## Usage
 
 ```
@@ -63,19 +71,6 @@ The `start` command is used to setup and start a new regtest environment. Here's
 ```
 ${USAGE_START}
 ```
-
-
-### Data Synchronization
-_We'll use the **environment id** of `2024010110101` and Docker container id `99e74a576e79` for examples in this section._
-
-The logs for running services are mounted to the local `logs` directory associated to the Docker `container id` as a Docker volume in the respective environment's path. For example, a logs directory may be `./environments/2024010110101/99e74a576e79/logs`.
-
-The `monitor.sh` script is responsible for synchronizing data between the host and running services, when an environment is active. 
-
-#### Synchronized Data
-- Logs
-
-TODO
 
 ### Cleaning Up
 Data will never be automatically removed from environments. However, the `clean` command is available which will remove all stale environment data. Note that if there is currently an running environment, it will **not** be cleaned up.
