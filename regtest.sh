@@ -34,23 +34,33 @@ read_env .env
 
 # Prints the help message for the main program
 print_help() {
-  cat << EOF
-Usage: ./regtest.sh COMMAND [OPTIONS]
+  help=$(cat << EOF
+Usage: 
+  ./regtest ${BOLD}COMMAND${NC} [OPTIONS]
 
-Available Commands:
+${BOLD}Available Commands:${NC}
   build                     Build the regtest environment.
   start                     Start the regtest environment.
-  stop                      Stop the regtest environment.
-  ls                        List all running services for the current 
+  ls                        List all running services for the current
                               environment.
-  clean                     Clean regtest data from './environments'.
-  contract-deploy           Deploy a contract to the environment.
-  contract-call             Call a public or read-only function on a contract
-                              in the regtest environment.
+  clean                     Clean regtest data from disk. If there is an active
+                              environment, it will be skipped.
+  epochs                    Print a list of available epochs for the regtest
+                              environment.
 
-Available Options:
-  --help          Print this help message
+${BOLD}Environment Commands:${NC}
+${GRAY}${ITALIC}These commands require a running environment.${NC}
+  stop                      Stop the currently running environment.
+  contract-deploy           Deploy a contract to the active environment.
+  contract-call             Call a public or read-only function on a contract
+                              in the active environment.
+
+${BOLD}Other:${NC}
+  help, -h, --help          Print this help message
 EOF
+)
+
+  printf "$help\n\n"
 }
 
 # Main entry point for the program
@@ -75,10 +85,10 @@ main() {
 
   # Parse the command line arguments
   case "$1" in 
-    "--help") 
+    "--help"|"-h"|"help") 
       print_help ;;
     "start")
-      shift
+      shift # Shift the command off the argument list
       exec_start "$@"
     ;;
     "build")
@@ -92,9 +102,25 @@ main() {
     "ls") 
       exec_ls ;;
     "contract-deploy") 
+      shift # Shift the command off the argument list
       exec_contract_deploy "$@" ;;
     "contract-call")
+      shift # Shift the command off the argument list
       exec_contract_call "$@" ;;
+    "epochs")
+      echo "The following epochs are available to be used for '--epoch' options:"
+      echo "‣ 1.0"
+      echo "‣ 2.0"
+      echo "‣ 2.05"
+      echo "‣ 2.1"
+      echo "‣ 2.2"
+      echo "‣ 2.3"
+      echo "‣ 2.4"
+      echo "‣ 2.5"
+      echo "‣ 3.0"
+      echo
+      exit 0
+      ;;
     *)
       printf "${RED}ERROR:${NC} Unknown command '$1'.\n"
       print_help ;;

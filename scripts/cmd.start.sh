@@ -16,54 +16,69 @@ DEFAULT_CONTRACTS=$TRUE
 
 # Prints the help message for the start command.
 print_start_help() {
-  cat << EOF
-Usage: ./regtest.sh start [OPTIONS]
+  help=$(cat << EOF
+Starts the regtest environment with the specified configuration.
+* At least one node (-n|--node) must be specified to start the environment.
 
-Available Options:
-  --all-nodes               Start all nodes.
-  --signer                  Start the signer node.
-  --node <node>             Start a specific node [24-leader, 24-follower, 
-                             naka-leader, naka-follower].
-  --help                    Print this help message.
+Usage:
+   ./regtest.sh ${BOLD}start${NC} [OPTIONS]
+
+${BOLD}Available Options:${NC}
+  -a, --all-nodes           Start all nodes.
+  -s, --signers int         Optionally start the specified number of
+                              signer nodes. This option may only be used once.
+  -n, --node <node>         Start a specific node. This option may be
+                              used multiple times to start multiple nodes,
+                              i.e. --node 24-leader --node naka-leader.
+                              May not be used in combination with --all-nodes.
+                              The following node names are valid:
+                                - 24-leader (24L)
+                                - 24-follower (24F)
+                                - naka-leader (NL)
+                                - naka-follower (NF)
   --no-default-contracts    Does not install any default contracts into the
-                             environment.
+                              environment.
+  -h, --help                Print this help message.
 EOF
+)
+
+  printf "$help\n\n"
 }
 
 # Entry point for the start command.
 exec_start() {
   while test $# != 0; do
     case "$1" in 
-      "--help")
+      "--help"|"-h")
         print_start_help
         exit 0
       ;;
-      "--all-nodes")
+      "--all-nodes"|"-a")
         STACKS_24_LEADER=$TRUE
         STACKS_24_FOLLOWER=$TRUE
         STACKS_NAKA_LEADER=$TRUE
         STACKS_NAKA_FOLLOWER=$TRUE
         START=$TRUE
       ;;
-      "--signer")
+      "--signer"|"-s")
         STACKS_SIGNER=$TRUE
       ;;
-      "--node")
+      "--node"|"-n")
         shift
         case "$1" in
-          "24-leader")
+          "24-leader"|"24L")
             STACKS_24_LEADER=$TRUE
             START=$TRUE
           ;;
-          "24-follower")
+          "24-follower"|"24F")
             STACKS_24_FOLLOWER=$TRUE
             START=$TRUE
           ;;
-          "naka-leader")
+          "naka-leader"|"NL")
             STACKS_NAKA_LEADER=$TRUE
             START=$TRUE
           ;;
-          "naka-follower")
+          "naka-follower"|"NF")
             STACKS_NAKA_FOLLOWER=$TRUE
             START=$TRUE
           ;;

@@ -1,10 +1,11 @@
 #! /usr/bin/env bash
 
-. ./regtest.sh "load-only"
+#. ./regtest.sh "load-only"
 
+tmp() {
+  [ $# -ge 1 ] && [ -f "$1" ] && input="$1" || input="-"
+  tmp=$(cat "$input")
+  echo "$tmp"
+}
 
-if is_valid_stacks_epoch 'asd'; then
-  echo "Valid"
-else
-  echo "Invalid"
-fi
+tmp "$@"

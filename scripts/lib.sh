@@ -1,4 +1,5 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC2059
 
 # shellcheck source=constants.sh
 . "$PWD/scripts/constants.sh"
@@ -52,28 +53,36 @@ read_env() {
   done < "$filePath"
 }
 
+# Logs a message to the console and to the environment log file, if any.
+#
+# @param $1: The message to log (required)
+# @param $2: The padding value (optional, default: 0)
 log() {
-  if [ -z "$REGTEST_ENV_ID" ]; then
-    return
-  fi
-
-  local -r message="${1:?}"
+  local message="${1:?}"
   local -i pad="${2:-0}"
   local -r timestamp=$(date +"%Y-%m-%d %T")
 
-  printf "[%s] %s" "$timestamp" "$message" >> "$ENV_LOG_FILE"
-
+  # If a padding value is provided, pad the message
   if [ "$pad" -gt 0 ]; then
-    pad $pad "$message"
-  else
-    printf "%s" "$message"
+    message=$(pad $pad "$message")
   fi
+
+  # If the REGTEST_ENV_ID environment variable is set, log to the environment 
+  # log file.
+  if [ -n "$REGTEST_ENV_ID" ]; then
+    printf "[%s] %s" "$timestamp" "$message" >> "$ENV_LOG_FILE"
+  fi
+
+  printf "%s" "$message"
 }
 
 log_line() {
   log "$1\n"
 }
 
+# Asserts that the specified epoch is valid.
+#
+# @param $1: The epoch as a string (i.e. '2.4') (required)
 is_valid_stacks_epoch() {
   local -r epoch="${1:?}"
   epochs=("1.0" "2.0" "2.05" "2.1" "2.2" "2.3" "2.4" "2.5" "3.0")
@@ -83,4 +92,54 @@ is_valid_stacks_epoch() {
     fi
   done
   return 1
+}
+
+# Asserts that the specified contract name is valid.
+#
+# @param $1: The contract name (required)
+is_valid_contract_name() {
+  [[ "$1" =~ ^([a-zA-Z](([a-zA-Z0-9]|[-_])){1,127})$ ]]
+}
+
+# Asserts that the specified Clarity name is valid.
+#
+# @param $1: The Clarity name (required)
+is_valid_clarity_name() {
+  [[ "$1" =~ ^([a-zA-Z]([a-zA-Z0-9]|[-_!?+<>=/*])*$){1,127}|([-+=/*]){1,127}|([<>]=?){1,127} ]]
+}
+
+# Asserts that the specified option is set and has a value.
+# The only difference between this function and `assert_arg` is the error message.
+#
+# @param $1: The option name (required)
+# @param $2: The option value (optional)
+assert_opt() {
+  local -r option="${1:?}"
+  local -r value="${2:-}"
+
+  if [ -z "$value" ]; then
+    printf "${RED}ERROR:${NC} The ${BOLD}$option${NC} option is required.\n"
+    return 1
+  fi
+  return 0
+}
+
+# Asserts that the specified argument is set and has a value.
+# The only difference between this function and `assert_opt` is the error message.
+#
+# @param $1: The argument name (required)
+# @param $2: The argument value (optional)
+assert_arg() {
+  local -r arg="${1:?}"
+  local -r value=${2:-}
+
+  if [ -z "$value" ]; then
+    printf "${RED}ERROR:${NC} The ${BOLD}$arg${NC} argument is required.\n"
+    return 1
+  fi
+  return 0
+}
+
+eq() {
+  [ "$1" -eq "$2" ]
 }

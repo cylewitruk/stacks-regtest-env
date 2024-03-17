@@ -2,10 +2,13 @@
 
 print_contract_call_help() {
   cat << EOF
-Usage: ./regtest contract-call CONTRACT FUNCTION [OPTIONS]
-* Call a public or read-only FUNCTION on CONTRACT.
+Call a public or read-only ${BOLD}FUNCTION${NC} on ${BOLD}CONTRACT${NC}.
 * CONTRACT must be the fully-qualified name of the contract, including the
   contract principal.
+
+${BOLD}Usage:${NC} 
+  ./regtest contract-call CONTRACT FUNCTION [OPTIONS]
+
 
 Example: ./regtest contract-call \\
   ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.counter \\
@@ -13,11 +16,11 @@ Example: ./regtest contract-call \\
   --sender STSTW15D618BSZQB85R058DS46THH86YQQY6XCB7 \\
   --arg 'u1'
 
-Required Options:
+Required Flags:
   -s, --sender string       The Stacks address of the sender. This is the
                               address that will pay for the contract call.
 
-Additional Options:
+Available Options:
   --sponsor string          Optionally specifies the Stacks address of the
                               sponsor for this transaction.
   -a, --arg string          Provides an argument to the function. This option

@@ -53,7 +53,7 @@ ENTRYPOINT ["/bitcoin/entrypoint.sh"]
 # ------------------------------------------------------------------------------
 # Build stage for Stacks Nodes
 # ------------------------------------------------------------------------------
-FROM rust:1.76-slim-bookworm as stacks-node-build
+FROM rust:1.76-slim-bookworm as stacks-build
 
 ARG STACKS_2_4_TAG_BRANCH
 ARG STACKS_NAKAMOTO_TAG_BRANCH
@@ -66,29 +66,41 @@ RUN apt update \
     && apt install -y build-essential libclang-dev git \
     && git clone https://github.com/stacks-network/stacks-core.git \
     && git clone https://github.com/stacks-network/sbtc.git \
+    && git clone https://github.com/hirosystems/clarinet.git --recursive \
+    && rustup toolchain install stable-x86_64-unknown-linux-gnu \
+    && rustup component add rustfmt \
     && mkdir -p /stacks/bin
 
 # Build stacks-node 2.4 binary
 WORKDIR /src/stacks-core
 RUN git checkout ${STACKS_2_4_TAG_BRANCH} \
-    && cargo build --package stacks-node --profile dev --bin stacks-node \
+    && cargo build --package stacks-node --bin stacks-node \
+    && cargo build \
     && mv /src/stacks-core/target/debug/stacks-node /stacks/bin/stacks-node-2.4
 
 # Build stacks-node nakamoto binary
 RUN git checkout ${STACKS_NAKAMOTO_TAG_BRANCH} \
-    && cargo build --package stacks-node --profile dev --bin stacks-node \
-    && cargo build --package stacks-signer --profile dev --bin stacks-signer \
+    && cargo build --package stacks-node --bin stacks-node \
+    && cargo build \
     && mv /src/stacks-core/target/debug/stacks-node /stacks/bin/stacks-node-nakamoto \
+    && mv /src/stacks-core/target/debug/blockstack-cli /stacks/bin/blockstack-cli \
     && mv /src/stacks-core/target/debug/stacks-signer /stacks/bin/stacks-signer
+
+# Build clarinet
+WORKDIR /src/clarinet
+RUN git checkout main \
+    && git pull \
+    && git submodule update --recursive \
+    && cargo build --release --bin clarinet \
+    && mv target/release/clarinet /stacks/bin/clarinet
 
 # Build sbtc cli
 WORKDIR /src/sbtc
-RUN rustup component add rustfmt \
-    && cargo install --path sbtc-cli --root ./ \
+RUN cargo install --path sbtc-cli --root ./ \
     && mv ./bin/sbtc /stacks/bin/sbtc
 
 # ------------------------------------------------------------------------------
-# Create a the runtime image with only the runtime dependencies
+# Stacks node runtime image
 # ------------------------------------------------------------------------------
 FROM debian:bookworm-slim as stacks-node
 
@@ -96,10 +108,12 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 # Copy stacks-node binaries & sbtc cli
-COPY --from=stacks-node-build /stacks/bin/* /stacks/bin/
+COPY --from=stacks-build /stacks/bin/* /stacks/bin/
+COPY --from=bitcoin-build /bitcoin/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
+
+# Copy local assets
 COPY ./assets/stacks-node-entrypoint.sh /stacks/bin/entrypoint.sh
 COPY ./assets/stacks-funcs.sh /stacks/bin/stacks-funcs.sh
-COPY --from=bitcoin-build /bitcoin/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
 COPY ./assets/stacks-leader-conf.toml /stacks/conf/leader.toml
 COPY ./assets/stacks-follower-conf.toml /stacks/conf/follower.toml
 COPY ./assets/stacks-signer-conf.toml /stacks/conf/signer.toml
@@ -107,7 +121,9 @@ COPY ./db-migrations/* /stacks/db-migrations/
 
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq procps sqlite3 tree \
+    && apt install -y jq procps sqlite3 tree yq \
+    && wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
+    && chmod +x /usr/local/bin/dasel \
     && groupadd -r -g ${USER_ID} stacks \ 
     && useradd -r -m --uid ${GROUP_ID} -g stacks stacks \
     && mkdir -p /stacks/signer /stacks/run /bitcoin/data /bitcoin/logs \
@@ -121,28 +137,7 @@ USER stacks
 ENTRYPOINT [ "/bin/bash", "-c", "/stacks/bin/entrypoint.sh" ]
 
 # ------------------------------------------------------------------------------
-# Build stage for Clarinet
-# ------------------------------------------------------------------------------
-FROM rust:1.76-slim-bookworm as clarinet-build
-
-WORKDIR /src
-
-# Install dependencies and download clarinet
-RUN apt update \
-    && apt upgrade -y \
-    && apt install -y build-essential libclang-dev git \
-    && git clone https://github.com/hirosystems/clarinet.git --recursive
-
-WORKDIR /src/clarinet
-
-RUN git checkout main \
-    && git pull \
-    && git submodule update --recursive \
-    && cargo build --release --bin clarinet \
-    && mv target/release/clarinet /clarinet
-
-# ------------------------------------------------------------------------------
-# Create a the runtime image with only the runtime dependencies
+# Clarinet runtime image
 # ------------------------------------------------------------------------------
 FROM debian:bookworm-slim as clarinet
 
@@ -151,9 +146,10 @@ ARG GROUP_ID=1000
 
 WORKDIR /stacks
 
-# Copy clarinet binary & examples
-COPY --from=clarinet-build /clarinet /stacks/bin/clarinet
-COPY --from=clarinet-build /src/clarinet/components/clarinet-cli/examples /stacks/apps
+# Copy blockstack-cli and clarinet binary & examples
+COPY --from=stacks-build /stacks/bin/blockstack-cli /stacks/bin/blockstack-cli
+COPY --from=stacks-build /stacks/bin/clarinet /stacks/bin/clarinet
+COPY --from=stacks-build /src/clarinet/components/clarinet-cli/examples /stacks/apps
 
 # Copy local assets
 COPY ./assets/clarinet-entrypoint.sh /stacks/bin/entrypoint.sh
@@ -162,7 +158,9 @@ COPY ./assets/clarinet-deployment-plan.yaml /stacks/deployment-plan-template.yam
 # Update and install packages
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq tree gettext-base
+    && apt install -y jq tree gettext-base yq \
+    && wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
+    && chmod +x /usr/local/bin/dasel
 
 # Create stacks user/group, create needed directories and set permissions
 RUN groupadd -r -g ${USER_ID} stacks \ 

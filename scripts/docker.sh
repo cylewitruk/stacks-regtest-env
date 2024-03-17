@@ -27,7 +27,10 @@ poll_containers() {
     mkdir -p "$dir"
     touch -a "$dir/host"
 
-    result=$( docker exec "$id" touch "/stacks/run/.lock" )
+    if ! docker exec "$id" touch "/stacks/run/.lock" > /dev/null 2>&1; then
+      log "Failed to lock container $id"
+      continue
+    fi
     result=$( docker cp "$dir/host" "$id:/stacks/run/host" )
     result=$( docker cp "$id:/stacks/run/container" "$dir/container" )
     result=$( docker exec "$id" rm "/stacks/run/.lock" )
