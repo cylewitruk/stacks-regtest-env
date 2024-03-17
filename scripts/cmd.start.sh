@@ -20,8 +20,21 @@ print_start_help() {
 Starts the regtest environment with the specified configuration.
 * At least one node (-n|--node) must be specified to start the environment.
 
-Usage:
+${BOLD}Usage:${NC}
    ./regtest.sh ${BOLD}start${NC} [OPTIONS]
+
+${BOLD}Examples:${NC}
+   ${GRAY}${ITALIC}# Start all nodes${NC}
+   ./regtest start --all-nodes
+
+   ${GRAY}${ITALIC}# Start the 24 leader and Naka follower nodes${NC}
+   ./regtest start --node 24L --node NF
+
+   ${GRAY}${ITALIC}# Start the 24 leader and 2 signer nodes${NC}
+   ./regtest start --node 24-leader --signers 2
+
+   ${GRAY}${ITALIC}# Start all nodes without installing default contracts${NC}
+   ./regtest start --all-nodes --no-default-contracts
 
 ${BOLD}Available Options:${NC}
   -a, --all-nodes           Start all nodes.
@@ -32,10 +45,10 @@ ${BOLD}Available Options:${NC}
                               i.e. --node 24-leader --node naka-leader.
                               May not be used in combination with --all-nodes.
                               The following node names are valid:
-                                - 24-leader (24L)
-                                - 24-follower (24F)
-                                - naka-leader (NL)
-                                - naka-follower (NF)
+                                - 24-leader, 24L
+                                - 24-follower, 24F
+                                - naka-leader, NL
+                                - naka-follower, NF
   --no-default-contracts    Does not install any default contracts into the
                               environment.
   -h, --help                Print this help message.

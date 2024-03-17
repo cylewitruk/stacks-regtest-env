@@ -24,68 +24,13 @@ This application requires the following dependencies on the local machine:
 ## Usage
 
 ```
-Usage: 
-  ./regtest COMMAND [OPTIONS]
-
-Available Commands:
-  build                     Build the regtest environment.
-  start                     Start the regtest environment.
-  ls                        List all running services for the current
-                              environment.
-  clean                     Clean regtest data from disk. If there is an active
-                              environment, it will be skipped.
-  epochs                    Print a list of available epochs for the regtest
-                              environment.
-
-Environment Commands:
-These commands require a running environment.
-  stop                      Stop the currently running environment.
-  contract-deploy           Deploy a contract to the active environment.
-  contract-call             Call a public or read-only function on a contract
-                              in the active environment.
-
-Other:
-  help, -h, --help          Print this help message
+${USAGE_MAIN}
 ```
 
 ### Starting a New Environment
 The `start` command is used to setup and start a new regtest environment. Here's an exerpt from the command's help:
 ```
-Starts the regtest environment with the specified configuration.
-* At least one node (-n|--node) must be specified to start the environment.
-
-Usage:
-   ./regtest.sh start [OPTIONS]
-
-Examples:
-   # Start all nodes
-   ./regtest start --all-nodes
-
-   # Start the 24 leader and Naka follower nodes
-   ./regtest start --node 24L --node NF
-
-   # Start the 24 leader and 2 signer nodes
-   ./regtest start --node 24-leader --signers 2
-
-   # Start all nodes without installing default contracts
-   ./regtest start --all-nodes --no-default-contracts
-
-Available Options:
-  -a, --all-nodes           Start all nodes.
-  -s, --signers int         Optionally start the specified number of
-                              signer nodes. This option may only be used once.
-  -n, --node <node>         Start a specific node. This option may be
-                              used multiple times to start multiple nodes,
-                              i.e. --node 24-leader --node naka-leader.
-                              May not be used in combination with --all-nodes.
-                              The following node names are valid:
-                                - 24-leader, 24L
-                                - 24-follower, 24F
-                                - naka-leader, NL
-                                - naka-follower, NF
-  --no-default-contracts    Does not install any default contracts into the
-                              environment.
-  -h, --help                Print this help message.
+${USAGE_START}
 ```
 Each environment is assigned a unique identifier in the format `yyyyMMddHHmmS`. The script will use this identifier to create a new "assets" directory under `./environments` specific to that environment. All docker containers will also be labeled with `local.stacks.environment_id=REGTEST_ENV_ID` so that we ensure we only touch containers which belong to the environment.
 
