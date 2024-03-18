@@ -2,6 +2,15 @@
 # shellcheck source-path=SCRIPTDIR/scripts
 # shellcheck disable=SC2059
 
+mkdir -p \
+  ~/.stacks-regtest/environments \
+  ~/.stacks-regtest/bin
+  
+RC_FILE=~/.stacks-regtest/regtestrc.yml
+if [ ! -f "$RC_FILE" ]; then
+  cp ./templates/regtestrc.yml "$RC_FILE"
+fi
+
 # Set the PWD for script imports to know where they're at.
 PWD="$(pwd)"
 
@@ -28,6 +37,8 @@ GROUP_NAME="$(id -gn)"
 . ./scripts/cmd.stop.sh
 . ./scripts/cmd.contract-deploy.sh
 . ./scripts/cmd.contract-call.sh
+. ./scripts/cmd.config.sh
+. ./scripts/cmd.manifest.sh
 
 # Load build-time environment variables
 read_env .env
@@ -35,21 +46,23 @@ read_env .env
 # Prints the help message for the main program
 print_help() {
   help=$(cat << EOF
-Usage: 
-  ./regtest ${BOLD}COMMAND${NC} [OPTIONS]
+${BOLD}Usage:${NC}
+  regtest ${BOLD}COMMAND${NC} [OPTION]...
 
 ${BOLD}Available Commands:${NC}
-  build                     Build the regtest environment.
-  start                     Start the regtest environment.
+  build                     Build the regtest environment without starting it.
+  start                     Start the regtest environment, building if necessary.
+  manifest                  Commands for working with environment manifests.
   ls                        List all running services for the current
                               environment.
   clean                     Clean regtest data from disk. If there is an active
                               environment, it will be skipped.
   epochs                    Print a list of available epochs for the regtest
                               environment.
+  config                    Commands to manage regtest environment configuration.
 
 ${BOLD}Environment Commands:${NC}
-${GRAY}${ITALIC}These commands require a running environment.${NC}
+${GRAY}${ITALIC}These commands require a running environment${NC}
   stop                      Stop the currently running environment.
   contract-deploy           Deploy a contract to the active environment.
   contract-call             Call a public or read-only function on a contract
@@ -120,6 +133,14 @@ main() {
       echo "‣ 3.0"
       echo
       exit 0
+      ;;
+    "config")
+      shift # Shift the command off the argument list
+      exec_config "$@"
+      ;;
+    "manifest")
+      shift # Shift the command off the argument list
+      exec_manifest "$@"
       ;;
     *)
       printf "${RED}ERROR:${NC} Unknown command '$1'.\n"

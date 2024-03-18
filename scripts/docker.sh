@@ -24,16 +24,31 @@ poll_containers() {
 
     dir="./environments/$REGTEST_ENV_ID/run/$id"
 
-    mkdir -p "$dir"
+    mkdir -p "$dir" "$dir/inbox" "$dir/outbox"
     touch -a "$dir/host"
 
     if ! docker exec "$id" touch "/stacks/run/.lock" > /dev/null 2>&1; then
       log "Failed to lock container $id"
-      continue
     fi
-    result=$( docker cp "$dir/host" "$id:/stacks/run/host" )
-    result=$( docker cp "$id:/stacks/run/container" "$dir/container" )
-    result=$( docker exec "$id" rm "/stacks/run/.lock" )
+
+    if ! docker cp "$dir/host" "$id:/stacks/run/host" >> "$ENV_LOG_FILE" 2>&1; then
+      log "Failed to copy host file to container $id"
+    fi
+    if ! docker cp "$id:/stacks/run/container" "$dir/container" >> "$ENV_LOG_FILE" 2>&1; then
+      log "Failed to copy container file from container $id"
+    fi
+    for outfile in "$dir/outbox/"*; do
+      outfile=$(basename "$outfile")
+      if ! docker cp "$dir/outbox/$outfile" "$id:/stacks/inbox/$outfile" >> "$ENV_LOG_FILE" 2>&1; then
+        log "Failed to copy outbox files to container $id"
+      else
+        rm "$dir/outbox/$outfile"
+      fi
+    done
+
+    if ! docker exec "$id" rm "/stacks/run/.lock">> "$ENV_LOG_FILE" 2>&1; then
+      log "Failed to unlock container $id"
+    fi
   done
 }
 
@@ -119,7 +134,7 @@ get_stacks_process_for_container_id() {
 
 get_random_stacks_node_container_id() {
   local leader filter json ids id
-  leader=$1
+  leader=${1:-}
 
   filter="-f 'label=local.stacks.role=node' -f 'label=local.stacks.$ENV_ID_LABEL=$REGTEST_ENV_ID'"
 

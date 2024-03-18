@@ -31,8 +31,6 @@ ${BOLD}Required Options:${NC}
                               version number, such as '2.0', '2.05', '2.4', etc.
 
 ${BOLD}Additional Options:${NC}
-  -d, --deployment          Optionally overrides the Clarinet deployment name,
-                              which defaults to <contract-name>-deployment.
   -n, --node                Optionally specifies the Stacks node to use for the
                               deployment. If not specified, a random node will
                               be selected.
@@ -41,6 +39,8 @@ ${BOLD}Additional Options:${NC}
                               only be included in a block and not a microblock.
   --microblock-only         Optionally specifies that the Stacks transaction may
                               only be included in a microblock and not a block.
+  --at-block                Optionally specifies the Bitcoin block height at which 
+                              the transaction should be included.
 
 ${BOLD}Other:${NC}
   -h, --help                Print this help message.
@@ -169,4 +169,16 @@ exec_contract_deploy() {
   fi
 
   echo "$contract_src"
+
+  declare -rx CONTRACT_SRC="$contract_src"
+  declare -rx CONTRACT_NAME="$contract_name"
+  declare -rx STACKS_SENDER="$sender"
+  declare -rx EPOCH="$epoch"
+  declare -rx COST="${cost:-$default_cost}"
+  declare -rx BLOCK_ONLY="${block_only:-false}"
+  declare -rx INCLUSION="default"
+
+  container_id="$( get_random_stacks_node_container_id )"
+
+  envsubst < "./templates/contract-deploy.properties" > "./environments/run/$container_id/outbox/$contract_name-deployment.properties"
 }

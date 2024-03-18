@@ -22,6 +22,15 @@ exec_stop() {
     printf "[${YELLOW}SKIP${NC}]\n"
   fi
 
+  pad 50 "‣ Removing network..."
+  if ! docker network rm "stacks-$REGTEST_ENV_ID" > /dev/null 2>&1;
+  then
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  else 
+    printf "[${GREEN}OK${NC}]\n"
+  fi
+
   pad 50 "‣ Stopping regtest environment..."
   if ! docker compose down --remove-orphans --timeout 0 > /dev/null 2>&1;
   then

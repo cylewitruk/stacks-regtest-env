@@ -15,7 +15,7 @@ EPOCH_2_5=8
 EPOCH_3_0=9
 
 NODE_LOG="/stacks/logs/stacks-node-$HOSTNAME.log"
-SIGNER_LOG="/stacks/logs/stacks-signer.log"
+SIGNER_LOG="/stacks/logs/stacks-signer-$HOSTNAME.log"
 NODE_INDEX_DB="/stacks/data/krypton/chainstate/vm/index.sqlite"
 
 CURRENT_EPOCH=$EPOCH_1_0
@@ -158,7 +158,7 @@ configure_node() {
     echo "This is a leader node 👑"
 
     # Move the leader config
-    mv /stacks/conf/leader.toml /stacks/conf/stacks-node.toml
+    #mv /stacks/conf/leader.toml /stacks/conf/stacks-node.toml
 
     # Generate a new keychain
     json=$( sbtc generate-from -b testnet -s testnet new )
@@ -177,7 +177,7 @@ configure_node() {
     echo "‣ ✓ Success!"
   else
     echo "This is a follower node 💤"
-    mv /stacks/conf/follower.toml /stacks/conf/stacks-node.toml
+    #mv /stacks/conf/follower.toml /stacks/conf/stacks-node.toml
   fi
 
   touch "$NODE_LOG"
@@ -249,7 +249,7 @@ start_signer() {
 
   echo "Starting Stacks signer 🚀"
   echo "### STARTING STACKS SIGNER ###" >> "$SIGNER_LOG"
-  stacks-signer run --config /stacks/conf/signer.toml --reward-cycle 1 >> "$SIGNER_LOG" 2>&1 &
+  stacks-signer run --config /stacks/conf/stacks-signer.toml --reward-cycle 1 >> "$SIGNER_LOG" 2>&1 &
 
   while [ "$( is_signer_process_alive )" -eq 0 ]; do
     echo "‣ Letting the signer do its thing..."

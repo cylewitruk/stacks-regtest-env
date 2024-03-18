@@ -3,6 +3,16 @@ ARG GROUP_ID
 ARG STACKS_2_4_TAG_BRANCH
 ARG NAKAMOTO_TAG_BRANCH
 
+FROM rust:1.76-slim-bookworm as build-base
+
+RUN apt update \
+    && apt upgrade -y \
+    && apt install -y build-essential libclang-dev git wget \
+    && rustup toolchain install stable-x86_64-unknown-linux-gnu \
+    && rustup component add rustfmt \
+    && wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
+    && chmod +x /usr/local/bin/dasel
+
 # ------------------------------------------------------------------------------
 # Dockerfile to build a Bitcoin Core image for regtest mode
 # ------------------------------------------------------------------------------
@@ -63,13 +73,16 @@ WORKDIR /src
 # Install dependencies and download stacks-node + sbtc
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y build-essential libclang-dev git \
+    && apt install -y build-essential libclang-dev git wget \
     && git clone https://github.com/stacks-network/stacks-core.git \
     && git clone https://github.com/stacks-network/sbtc.git \
     && git clone https://github.com/hirosystems/clarinet.git --recursive \
     && rustup toolchain install stable-x86_64-unknown-linux-gnu \
     && rustup component add rustfmt \
     && mkdir -p /stacks/bin
+
+RUN wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
+    && chmod +x /usr/local/bin/dasel
 
 # Build stacks-node 2.4 binary
 WORKDIR /src/stacks-core
@@ -112,22 +125,20 @@ COPY --from=stacks-build /stacks/bin/* /stacks/bin/
 COPY --from=bitcoin-build /bitcoin/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
 
 # Copy local assets
-COPY ./assets/stacks-node-entrypoint.sh /stacks/bin/entrypoint.sh
-COPY ./assets/stacks-funcs.sh /stacks/bin/stacks-funcs.sh
-COPY ./assets/stacks-leader-conf.toml /stacks/conf/leader.toml
-COPY ./assets/stacks-follower-conf.toml /stacks/conf/follower.toml
-COPY ./assets/stacks-signer-conf.toml /stacks/conf/signer.toml
-COPY ./db-migrations/* /stacks/db-migrations/
+#COPY ./assets/stacks-node-entrypoint.sh /stacks/bin/entrypoint.sh
+#COPY ./assets/stacks-funcs.sh /stacks/bin/stacks-funcs.sh
+#COPY ./assets/stacks-leader-conf.toml /stacks/conf/leader.toml
+#COPY ./assets/stacks-follower-conf.toml /stacks/conf/follower.toml
+#COPY ./assets/stacks-signer-conf.toml /stacks/conf/signer.toml
+#COPY ./db-migrations/* /stacks/db-migrations/
 
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq procps sqlite3 tree yq \
-    && wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
-    && chmod +x /usr/local/bin/dasel \
+    && apt install -y jq procps sqlite3 tree \
     && groupadd -r -g ${USER_ID} stacks \ 
     && useradd -r -m --uid ${GROUP_ID} -g stacks stacks \
-    && mkdir -p /stacks/signer /stacks/run /bitcoin/data /bitcoin/logs \
-    && touch /stacks/run/host /stacks/run/container \
+    #&& mkdir -p /stacks/signer /stacks/run /bitcoin/data /bitcoin/logs \
+    #&& touch /stacks/run/host /stacks/run/container \
     && chown -R stacks:stacks /stacks \
     && chmod u+x /stacks/bin/* \
     && chown -R stacks:stacks /bitcoin
@@ -158,7 +169,7 @@ COPY ./assets/clarinet-deployment-plan.yaml /stacks/deployment-plan-template.yam
 # Update and install packages
 RUN apt update \
     && apt upgrade -y \
-    && apt install -y jq tree gettext-base yq \
+    && apt install -y jq tree gettext-base wget \
     && wget -O /usr/local/bin/dasel https://github.com/TomWright/dasel/releases/download/v2.7.0/dasel_linux_amd64 \
     && chmod +x /usr/local/bin/dasel
 

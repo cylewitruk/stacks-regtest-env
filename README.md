@@ -1,5 +1,7 @@
 _Docs are WIP!_
 
+**This work is subsidized by [Bitcoin L2 Labs](https://bitcoinl2labs.com/).**
+
 # Stacks Regtest Environment
 This project aims to simplify the process of configuring and running a [Stacks Blockchain](https://www.stacks.co/) `regtest` environment.
 
@@ -73,21 +75,23 @@ TODO
 ## Usage
 
 ```
-Usage: 
-  ./regtest COMMAND [OPTIONS]
+Usage:
+  regtest COMMAND [OPTION]...
 
 Available Commands:
-  build                     Build the regtest environment.
-  start                     Start the regtest environment.
+  build                     Build the regtest environment without starting it.
+  start                     Start the regtest environment, building if necessary.
+  manifest                  Commands for working with environment manifests.
   ls                        List all running services for the current
                               environment.
   clean                     Clean regtest data from disk. If there is an active
                               environment, it will be skipped.
   epochs                    Print a list of available epochs for the regtest
                               environment.
+  config                    Commands to manage regtest environment configuration.
 
 Environment Commands:
-These commands require a running environment.
+These commands require a running environment
   stop                      Stop the currently running environment.
   contract-deploy           Deploy a contract to the active environment.
   contract-call             Call a public or read-only function on a contract

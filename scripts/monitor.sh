@@ -5,8 +5,7 @@
 monitor() {
   while : 
   do
-    echo "Monitor loop..."
     poll_containers
-    sleep 5
+    sleep 1
   done
 }

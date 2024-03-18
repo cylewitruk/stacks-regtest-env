@@ -5,10 +5,23 @@ echo "Preparing to start Stacks regtest environment..."
 # Include our binaries in the PATH
 export PATH="$PATH:/stacks/bin/"
 
-chmod -R u+rw /stacks
+#chmod -R u+rw /stacks
+mkdir -p \
+  /stacks/inbox \
+  /stacks/outbox \
+  /stacks/run \
+  /bitcoin/data \
+  /bitcoin/logs
+
+touch \
+  /stacks/run/host \
+  /stacks/run/container
+
+chmod +x /stacks/bin/*
 
 # Load helper functions
-. stacks-funcs.sh
+# shellcheck source=stacks-node-entrypoint-lib.sh
+. .stacks-node-entrypoint-lib.sh
 
 sleep 1.5
 

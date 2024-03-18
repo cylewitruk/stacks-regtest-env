@@ -1,5 +1,7 @@
 _Docs are WIP!_
 
+**This work is subsidized by [Bitcoin L2 Labs](https://bitcoinl2labs.com/).**
+
 # Stacks Regtest Environment
 This project aims to simplify the process of configuring and running a [Stacks Blockchain](https://www.stacks.co/) `regtest` environment.
 
@@ -23,8 +25,9 @@ This application is an assortment of `bash` scripts which provide a clean interf
 
 ## Requirements
 This application requires the following dependencies on the local machine:
-- bash
+- `bash`
 - docker (& compose)
+- gettext-base (for `envsubst`)
 
 ## How it Works
 

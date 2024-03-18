@@ -85,6 +85,21 @@ services:
       target: stacks-node
     image: stacks.local/stacks-node
     entrypoint: /bin/bash -c exit
+
+  # Container for building/gathering required binaries
+  stacks-build:
+    build:
+      dockerfile: Dockerfile
+      target: build-base
+    image: stacks.local/build
+    entrypoint: /entrypoint.sh
+    environment:
+      BITCOIN_VERSION: ${BITCOIN_VERSION}
+      STACKS_2_4_TAG_BRANCH: ${STACKS_2_4_TAG_BRANCH}
+      STACKS_NAKAMOTO_TAG_BRANCH: ${STACKS_NAKAMOTO_TAG_BRANCH}
+    volumes:
+      - ./assets/stacks-build-entrypoint.sh:/entrypoint.sh
+      - ~/.stacks-regtest/bin:/stacks/bin/:rw
   
   # ----------------------------------------------------------------------------
   # 2.4 nodes
@@ -112,7 +127,12 @@ services:
       LEADER: true
       NODE_VERSION: 2.4
     volumes:
+      # Load configuration and shellscripts
       - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/stacks-node-entrypoint.sh:/stacks/bin/entrypoint.sh
+      - ./assets/stacks-node-entrypoint-lib.sh:/stacks/bin/stacks-node-entrypoint-lib.sh
+      - ./assets/stacks-leader-conf.toml:/stacks/conf/stacks-node.toml
+      # Map logs to the container's local environment logs directory
       - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Follower nodes
@@ -137,7 +157,12 @@ services:
     environment:
       NODE_VERSION: "2.4"
     volumes:
+      # Load configuration and shellscripts
       - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/stacks-node-entrypoint.sh:/stacks/bin/entrypoint.sh
+      - ./assets/stacks-node-entrypoint-lib.sh:/stacks/bin/entrypoint-lib.sh
+      - ./assets/stacks-follower-conf.toml:/stacks/conf/stacks-node.toml
+      # Map logs to the container's local environment logs directory
       - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # ----------------------------------------------------------------------------
@@ -167,7 +192,12 @@ services:
       LEADER: true
       NODE_VERSION: nakamoto
     volumes:
+      # Load configuration and shellscripts
       - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/stacks-node-entrypoint.sh:/stacks/bin/entrypoint.sh
+      - ./assets/stacks-node-entrypoint-lib.sh:/stacks/bin/entrypoint-lib.sh
+      - ./assets/stacks-leader-conf.toml:/stacks/conf/stacks-node.toml
+      # Map logs to the container's local environment logs directory
       - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Follower nodes
@@ -192,7 +222,12 @@ services:
     environment:
       NODE_VERSION: nakamoto
     volumes:
+      # Load configuration and shellscripts
       - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/stacks-node-entrypoint.sh:/stacks/bin/entrypoint.sh
+      - ./assets/stacks-node-entrypoint-lib.sh:/stacks/bin/entrypoint-lib.sh
+      - ./assets/stacks-follower-conf.toml:/stacks/conf/stacks-node.toml
+      # Map logs to the container's local environment logs directory
       - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   # Signer nodes
@@ -215,5 +250,13 @@ services:
       - "5060-5069:30002"
     environment:
       NODE_VERSION: nakamoto
+    volumes:
+      # Load configuration and shellscripts
+      - ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf
+      - ./assets/stacks-node-entrypoint.sh:/stacks/bin/entrypoint.sh
+      - ./assets/stacks-node-entrypoint-lib.sh:/stacks/bin/entrypoint-lib.sh
+      - ./assets/stacks-signer-conf.toml:/stacks/conf/stacks-signer.toml
+      # Map logs to the container's local environment logs directory
+      - ./environments/${REGTEST_ENV_ID}/logs:/stacks/logs/:rw
 
   

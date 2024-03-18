@@ -3,7 +3,8 @@
 
 # shellcheck source=docker.sh
 . "$PWD/scripts/docker.sh"
-#. "$PWD/scripts/monitor.sh"
+# shellcheck source=constants.sh
+. "$PWD/scripts/constants.sh"
 
 # Variables to control which nodes to start
 STACKS_24_LEADER=$FALSE
@@ -150,6 +151,16 @@ exec_start() {
     exit 1
   fi
 
+  # Create the network
+  network_name="stacks-$REGTEST_ENV_ID"
+  pad 50 "‣ Creating the network..."
+  if docker network create -d bridge "$network_name" >> "$ENV_LOG_FILE" 2>&1; then
+    printf "[${GREEN}OK${NC}] ${GRAY} $network_name${NC}\n"
+  else
+    printf "[${RED}FAIL${NC}]\n"
+    exit 1
+  fi
+
   # Start the internal 'environment' service, which is used to store
   # environment-related information. This service should be the first started
   # and last stopped for an environment.
@@ -170,7 +181,7 @@ exec_start() {
   fi
 
   # Start signer node(s) if requested.
-  if [ "$STACKS_SIGNER" -eq "$TRUE" ]; then
+  if [ "$STACKS_SIGNER" -eq $TRUE ]; then
     echo "Starting the signer node..."
     docker compose up stacks-signer
   fi
@@ -181,17 +192,39 @@ exec_start() {
   then
     local -i monitor_pid=$!
     echo "$monitor_pid" > "$ENV_RUN_DIR/monitor.pid"
-    printf "[${GREEN}OK${NC}] ${GRAY} pid:$monitor_pid${NC}\n\n"
+    printf "[${GREEN}OK${NC}] ${GRAY} PID $monitor_pid${NC}\n"
   else
     printf "[${RED}FAIL${NC}]\n"
     exit 1
   fi
 
+  # Install default contracts if requested.
+  if [ "$DEFAULT_CONTRACTS" -eq $TRUE ]; then
+    pad 50 "‣ Installing default contracts..."
+    if install_default_contracts >> "$ENV_LOG_FILE" 2>&1; then
+      printf "[${GREEN}OK${NC}]\n"
+    else
+      printf "[${RED}FAIL${NC}]\n"
+      exit 1
+    fi
+  fi
+
   sleep 1
-  printf "🚀 Environment launched!\n\n"
+  printf "\n🚀 Environment launched!\n\n"
 
   exec_ls
 
   printf "\n${BOLD}To stop the environment, run:${NC} ./regtest stop\n\n"
   printf "${BOLD}${GREEN}Success:${NC} Regtest environment has been started.\n\n"
+}
+
+install_default_contracts() {
+  # shellcheck disable=SC2119
+  container_id="$(get_random_stacks_node_container_id)"
+  dest_dir="./environments/$REGTEST_ENV_ID/run/$container_id/outbox/"
+  mkdir -p "$dest_dir"
+  if ! cp -R "$PWD/contracts/"* "$dest_dir"; then
+    return 1
+  fi
+  return 0
 }
