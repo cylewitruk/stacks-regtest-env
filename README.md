@@ -25,8 +25,9 @@ This application is an assortment of `bash` scripts which provide a clean interf
 
 ## Requirements
 This application requires the following dependencies on the local machine:
-- bash
+- `bash`
 - docker (& compose)
+- gettext-base (for `envsubst`)
 
 ## How it Works
 
