@@ -52,6 +52,20 @@ poll_containers() {
   done
 }
 
+stop_all_environment_containers() {
+  local json ids id result
+
+  json="[$(docker ps -f "label=local.stacks.$ENV_ID_LABEL=$REGTEST_ENV_ID" \
+    --format "json" | tr '\n' ',' | sed 's/,*$//g')]"
+  ids="$( echo "$json" | jq '.[] .ID' )"
+  readarray -t ids <<<"$ids" 2>&1 /dev/null
+
+  for (( i=0; i<${#ids[@]}; i++ )) ; do
+    id="$( trim_quotes "${ids[$i]}" )"
+    docker kill "$id" >> "$ENV_LOG_FILE" 2>&1
+  done
+}
+
 # Copies the default contracts from './contracts' to the container with
 # the specified id.
 #

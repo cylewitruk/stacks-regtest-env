@@ -192,7 +192,7 @@ exec_start() {
     --entrypoint "/entrypoint.sh" \
     --rm \
     --detach \
-    stacks.local/build:latest \
+    stacks.local/runtime:latest \
     >> "$ENV_LOG_FILE" 2>&1
   then
     printf "[${GREEN}OK${NC}]\n"
@@ -210,6 +210,7 @@ exec_start() {
       --label local.stacks.role=node \
       --env NODE_VERSION=2.4 \
       --env LEADER=true \
+      --env-file ./assets/stacks.env \
       --network "$network_name" \
       --user stacks \
       -v ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf:ro \
@@ -221,7 +222,7 @@ exec_start() {
       --entrypoint "/stacks-node-entrypoint.sh" \
       --rm \
       --detach \
-      stacks.local/build:latest \
+      stacks.local/runtime:latest \
       >> "$ENV_LOG_FILE" 2>&1
     then
       printf "[${GREEN}OK${NC}]\n"
