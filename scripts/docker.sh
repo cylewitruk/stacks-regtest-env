@@ -63,9 +63,9 @@ copy_default_contracts_to_container() {
 
   docker exec "$id" touch "/stacks/inbox/.lock"
   for path in ./contracts/*.deploy; do
-  file=$(basename "$path")
-  echo "‣ Installing contract: $file"
-  docker cp "$dir/host" "$id:/stacks/inbox/$file"
+    file=$(basename "$path")
+    echo "‣ Installing contract: $file"
+    docker cp "$dir/host" "$id:/stacks/inbox/$file"
   done
   docker exec "$id" rm "/stacks/inbox/.lock"
 }
@@ -130,6 +130,15 @@ get_stacks_process_for_container_id() {
   result=$( docker top "$container_id" o pid,cmd | sed '1d' \
     | grep -oP '(?<=stacks-node-)[\w-\._]+' )
   echo "$result"
+}
+
+delete_all_environment_networks() {
+  local -a network_names
+  network_names=$( \
+    docker network ls -f 'label=local.stacks.environment_id' --format "{{.Name}}" \
+  )
+  #readarray -t network_names <<<"$network_names" 2>&1 /dev/null
+  echo "$network_names"
 }
 
 get_random_stacks_node_container_id() {

@@ -295,7 +295,7 @@ is_signer_process_alive() {
   local pid
   
   # Determine the process ID of the running Stacks node
-  pid=$( pgrep "stacks-signer" )
+  pid=$( pgrep --list-full stacks-signer | grep -v bash | awk '{print $1}' )
 
   if [ "$pid" = "" ]; then
     echo $FALSE
@@ -313,7 +313,7 @@ stop_node() {
     return
   fi
 
-  pid=$( pgrep -f "stacks-node-" )
+  pid=$( pgrep --list-full stacks-node | grep -v bash | awk '{print $1}' )
 
   echo "Stopping Stacks node: $RUNNING ⛔ (pid: $pid)"
   kill -2 "$pid"

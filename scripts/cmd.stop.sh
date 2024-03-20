@@ -10,10 +10,10 @@ exec_stop() {
   monitor_pid_file="./environments/$REGTEST_ENV_ID/run/monitor.pid"
 
   echo "Stopping regtest environment"
-  monitor_pid=$( cat "$monitor_pid_file" )
+  monitor_pid=$( cat "$monitor_pid_file" >> "$ENV_LOG_FILE" 2>&1 )
   pad 50 "‣ Stopping monitor (PID $monitor_pid)..."
   if [ -n "$monitor_pid" ]; then
-    if ! kill -9 "$monitor_pid" > /dev/null 2>&1; then
+    if ! kill -9 "$monitor_pid" >> "$ENV_LOG_FILE" 2>&1; then
       printf "[${RED}FAIL${NC}]\n"
     else
       printf "[${GREEN}OK${NC}]\n"
@@ -23,16 +23,15 @@ exec_stop() {
   fi
 
   pad 50 "‣ Removing network..."
-  if ! docker network rm "stacks-$REGTEST_ENV_ID" > /dev/null 2>&1;
+  if ! docker network rm "stacks-$REGTEST_ENV_ID" >> "$ENV_LOG_FILE" 2>&1;
   then
     printf "[${RED}FAIL${NC}]\n"
-    exit 1
   else 
     printf "[${GREEN}OK${NC}]\n"
   fi
 
   pad 50 "‣ Stopping regtest environment..."
-  if ! docker compose down --remove-orphans --timeout 0 > /dev/null 2>&1;
+  if ! docker compose down --remove-orphans --timeout 0 >> "$ENV_LOG_FILE" 2>&1;
   then
     printf "[${RED}FAIL${NC}]\n"
     exit 1

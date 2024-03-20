@@ -154,7 +154,11 @@ exec_start() {
   # Create the network
   network_name="stacks-$REGTEST_ENV_ID"
   pad 50 "‣ Creating the network..."
-  if docker network create -d bridge "$network_name" >> "$ENV_LOG_FILE" 2>&1; then
+  if docker network create \
+    -d bridge "$network_name" \
+    --label local.stacks.environment_id="$REGTEST_ENV_ID" \
+    >> "$ENV_LOG_FILE" 2>&1
+  then
     printf "[${GREEN}OK${NC}] ${GRAY} $network_name${NC}\n"
   else
     printf "[${RED}FAIL${NC}]\n"
@@ -172,13 +176,68 @@ exec_start() {
     exit 1
   fi
 
-  pad 50 "‣ Starting the remaining services..."
-  if sh -c "docker compose up -d $services" >> "$ENV_LOG_FILE" 2>&1; then
+  pad 50 "‣ Starting the Bitcoin service..."
+  if docker run \
+    --label local.stacks.environment_id="$REGTEST_ENV_ID" \
+    --label local.stacks.role=bitcoind \
+    --env BITCOIN_VERSION="${BITCOIN_VERSION}" \
+    --network "$network_name" \
+    --expose 18443 \
+    --expose 18444 \
+    --user stacks \
+    --name "bitcoin-node" \
+    -v ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf:ro \
+    -v ./assets/bitcoin-entrypoint.sh:/entrypoint.sh:ro \
+    -v ./environments/"${REGTEST_ENV_ID}"/logs:/stacks/logs/:rw \
+    --entrypoint "/entrypoint.sh" \
+    --rm \
+    --detach \
+    stacks.local/build:latest \
+    >> "$ENV_LOG_FILE" 2>&1
+  then
     printf "[${GREEN}OK${NC}]\n"
   else
     printf "[${RED}FAIL${NC}]\n"
     exit 1
   fi
+
+  if [ $STACKS_24_LEADER -eq $TRUE ]; then
+    pad 50 "‣ Stacks 2.4 Leader node..."
+    if docker run \
+      --label local.stacks.environment_id="$REGTEST_ENV_ID" \
+      --label local.stacks.leader=true \
+      --label local.stacks.node_version='2.4' \
+      --label local.stacks.role=node \
+      --env NODE_VERSION=2.4 \
+      --env LEADER=true \
+      --network "$network_name" \
+      --user stacks \
+      -v ./assets/bitcoin-runtime.conf:/home/stacks/.bitcoin/bitcoin.conf:ro \
+      -v ./assets/stacks-node-entrypoint.sh:/stacks-node-entrypoint.sh:ro \
+      -v ./assets/stacks-node-entrypoint-lib.sh:/stacks-node-entrypoint-lib.sh:ro \
+      -v ./assets/stacks-leader-conf.toml:/stacks/tmp/stacks-node.toml:ro \
+      -v ./environments/"${REGTEST_ENV_ID}"/logs:/stacks/logs/:rw \
+      -v "$HOME"/.stacks-regtest/bin:/stacks/bin/:ro \
+      --entrypoint "/stacks-node-entrypoint.sh" \
+      --rm \
+      --detach \
+      stacks.local/build:latest \
+      >> "$ENV_LOG_FILE" 2>&1
+    then
+      printf "[${GREEN}OK${NC}]\n"
+    else
+      printf "[${RED}FAIL${NC}]\n"
+      exit 1
+    fi
+  fi
+
+  # pad 50 "‣ Starting the remaining services..."
+  # if sh -c "docker compose up -d $services" >> "$ENV_LOG_FILE" 2>&1; then
+  #   printf "[${GREEN}OK${NC}]\n"
+  # else
+  #   printf "[${RED}FAIL${NC}]\n"
+  #   exit 1
+  # fi
 
   # Start signer node(s) if requested.
   if [ "$STACKS_SIGNER" -eq $TRUE ]; then

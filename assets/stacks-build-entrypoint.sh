@@ -1,37 +1,38 @@
 #! /usr/bin/env bash
 # shellcheck disable=SC2059
 
-mkdir -p /src \
-  && cd /src || exit 1
+cd /src || exit 1
 
-  echo "Cloning repositories" \
-  && git clone https://github.com/stacks-network/sbtc.git \
-  && git clone https://github.com/hirosystems/clarinet.git --recursive \
-  && git clone https://github.com/stacks-network/stacks-core.git
+# echo "Building SBTC" \
+#   && find ./ ! -name '.' -delete \
+#   && cp -rT ~/repos/sbtc /src \
+#   && git pull \
+#   && cargo --config ~/.cargo/config.toml install --path sbtc-cli --root ./ \
+#   && mv -f ./bin/sbtc /stacks/bin/sbtc
 
-  echo "Building SBTC" \
-  && cd /src/sbtc || exit 1 \
-  && cargo install --path sbtc-cli --root ./ \
-  && mv ./bin/sbtc /stacks/bin/sbtc
+# echo "Building Clarinet" \
+#   && find ./ ! -name '.' -delete \
+#   && cp -rT ~/repos/clarinet /src \
+#   && git checkout main \
+#   && git pull \
+#   && git submodule update --recursive \
+#   && cargo --config ~/.cargo/config.toml build --profile docker --bin clarinet \
+#   && mv -f /target/x86_64-unknown-linux-gnu/docker/clarinet /stacks/bin/clarinet 
 
-  echo "Building Clarinet" \
-  && cd /src/clarinet || exit 1 \
-  && git submodule update --recursive \
-  && cargo build --release --bin clarinet \
-  && mv target/release/clarinet /stacks/bin/clarinet 
-  
-  echo "Building Stacks 2.4 Node" \
-  && cd /src/stacks-core || exit 1 \
+echo "Cloning 'stacks-core'" \
+  && find ./ ! -name '.' -delete \
+  && cp -rT ~/repos/stacks-core /src
+
+echo "Building Stacks 2.4 Node" \
   && git checkout "${STACKS_2_4_TAG_BRANCH}" \
-  && cargo build --package stacks-node --bin stacks-node \
-  && cargo build \
-  && mv target/debug/stacks-node /stacks/bin/stacks-node-2.4 
-  
-  echo "Building Nakamoto binaries" \
-  && cd /src/stacks-core || exit 1 \
-  && git checkout "${STACKS_NAKAMOTO_TAG_BRANCH}" \
-  && cargo build --package stacks-node --bin stacks-node \
-  && cargo build \
-  && mv target/debug/stacks-node /stacks/bin/stacks-node-nakamoto \
-  && mv target/debug/blockstack-cli /stacks/bin/blockstack-cli \
-  && mv target/debug/stacks-signer /stacks/bin/stacks-signer
+  && cargo --config ~/.cargo/config.toml build --profile docker --package stacks-node --bin stacks-node \
+  && mv -f /target/x86_64-unknown-linux-gnu/docker/stacks-node /stacks/bin/stacks-node-2.4 
+
+# echo "Building Nakamoto binaries" \
+#   && git checkout "${STACKS_NAKAMOTO_TAG_BRANCH}" \
+#   && git pull \
+#   && cargo --config ~/.cargo/config.toml build --profile docker --package stacks-node --bin stacks-node \
+#   && cargo --config ~/.cargo/config.toml build --profile docker \
+#   && mv -f /target/x86_64-unknown-linux-gnu/docker/stacks-node /stacks/bin/stacks-node-nakamoto \
+#   && mv -f /target/x86_64-unknown-linux-gnu/docker/blockstack-cli /stacks/bin/blockstack-cli \
+#   && mv -f /target/x86_64-unknown-linux-gnu/docker/stacks-signer /stacks/bin/stacks-signer

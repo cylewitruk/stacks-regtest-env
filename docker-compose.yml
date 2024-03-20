@@ -88,6 +88,7 @@ services:
 
   # Container for building/gathering required binaries
   stacks-build:
+    user: stacks
     build:
       dockerfile: Dockerfile
       target: build-base
@@ -98,7 +99,7 @@ services:
       STACKS_2_4_TAG_BRANCH: ${STACKS_2_4_TAG_BRANCH}
       STACKS_NAKAMOTO_TAG_BRANCH: ${STACKS_NAKAMOTO_TAG_BRANCH}
     volumes:
-      - ./assets/stacks-build-entrypoint.sh:/entrypoint.sh
+      - ./assets/stacks-build-entrypoint.sh:/entrypoint.sh:ro
       - ~/.stacks-regtest/bin:/stacks/bin/:rw
   
   # ----------------------------------------------------------------------------
